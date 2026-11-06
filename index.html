@@ -241,9 +241,9 @@ footer{border-top:1px solid var(--line);padding:24px 0;color:var(--muted);font-s
       <label>Email admin<input id="adminEmail" type="email" autocomplete="username" placeholder="Email akun Supabase"></label>
       <label>Password admin<input id="adminPassword" type="password" autocomplete="current-password" placeholder="Password akun Supabase"></label>
       <button class="admin-action primary" id="adminLoginButton" type="button">Masuk sebagai admin</button>
-      <button class="admin-action" id="adminLogoutButton" type="button" style="display:none">Keluar</button>
       <p class="admin-note" id="adminAuthStatus" role="status">Silakan masuk untuk mengelola Add-on.</p>
     </div>
+    <button class="admin-action" id="adminLogoutButton" type="button" style="display:none;margin:10px 0">Keluar</button>
     <p class="admin-note" id="adminWorkspaceNote" style="display:none">Tambahkan resource lewat formulir ini. Data, foto, dan file disimpan ke Supabase agar dapat dilihat pengunjung dari perangkat lain.</p>
     <section id="adminPosterTools" style="display:none;padding:16px;border:1px solid var(--line);border-radius:12px;margin:14px 0;background:var(--panel)">
       <h3 style="margin:0 0 8px">Kelola poster utama</h3>
@@ -319,7 +319,7 @@ function persistResources(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(
 async function loadCloudResources(){
  const {data,error}=await sbClient.from('addons').select('id,title,data,published').eq('published',true).order('id',{ascending:false});
  if(error)throw error;
- if(Array.isArray(data)&&data.length){
+ if(Array.isArray(data)){
    resources=data.map(row=>({...((row.data&&typeof row.data==='object')?row.data:{}),id:(row.data&&row.data.id)||('cloud-'+row.id),dbId:row.id,name:(row.data&&row.data.name)||row.title||'Add-on'}));
    persistResources();
  }
@@ -334,7 +334,9 @@ async function dataUrlToBlob(dataUrl){const response=await fetch(dataUrl);return
 async function saveCloudResource(item){
  if(item.image&&item.image.startsWith('data:')){
    const blob=await dataUrlToBlob(item.image);
-   item.image=await uploadCloudBlob(blob,'covers/'+item.id+'-'+Date.now()+'.jpg','image/jpeg');
+   const coverPath='covers/'+item.id+'-'+Date.now()+'.jpg';
+   item.image=await uploadCloudBlob(blob,coverPath,'image/jpeg');
+   item.coverPath=coverPath;
  }
  if(Array.isArray(item.gallery)){
    const uploaded=[];
@@ -342,7 +344,10 @@ async function saveCloudResource(item){
      const image=item.gallery[i];
      if(typeof image==='string'&&image.startsWith('data:')){
        const blob=await dataUrlToBlob(image);
-       uploaded.push(await uploadCloudBlob(blob,'screenshots/'+item.id+'-'+Date.now()+'-'+i+'.jpg','image/jpeg'));
+       const galleryPath='screenshots/'+item.id+'-'+Date.now()+'-'+i+'.jpg';
+       uploaded.push(await uploadCloudBlob(blob,galleryPath,'image/jpeg'));
+       if(!Array.isArray(item.galleryPaths))item.galleryPaths=[];
+       item.galleryPaths.push(galleryPath);
      }else uploaded.push(image);
    }
    item.gallery=uploaded;
@@ -428,15 +433,17 @@ function openDetail(resource){
  set('detailFaq',resource.faq||'Belum ada pertanyaan umum.');
  const download=document.getElementById('detailDownload');
  const downloadUrl=String(resource.url||resource.downloadUrl||resource.download||'').trim();
- const hasDownloadUrl=/^https?:\/\//i.test(downloadUrl);
- download.href=hasDownloadUrl?downloadUrl:'#';
+ const safeDownloadUrl=safeHttpUrl(downloadUrl);
+ const hasDownloadUrl=!!safeDownloadUrl;
+ download.href=hasDownloadUrl?safeDownloadUrl:'#';
  download.style.display='inline-flex';
- download.textContent=(resource.addonFileUrl||resource.addonFileId)?'↓ Download file Add-on':(hasDownloadUrl?'↓ Download':'↓ Link download belum ditambahkan');
+ download.textContent=(safeHttpUrl(resource.addonFileUrl)||resource.addonFileId)?'↓ Download file Add-on':(hasDownloadUrl?'↓ Download':'↓ Link download belum ditambahkan');
  download.setAttribute('aria-disabled',hasDownloadUrl?'false':'true');
- download.style.opacity=(hasDownloadUrl||resource.addonFileId)?'1':'.72';
- download.style.cursor=(hasDownloadUrl||resource.addonFileId)?'pointer':'not-allowed';
+ download.style.opacity=(hasDownloadUrl||safeHttpUrl(resource.addonFileUrl)||resource.addonFileId)?'1':'.72';
+ download.style.cursor=(hasDownloadUrl||safeHttpUrl(resource.addonFileUrl)||resource.addonFileId)?'pointer':'not-allowed';
  download.onclick=async function(event){
-   if(resource.addonFileUrl){event.preventDefault();window.location.href=resource.addonFileUrl;return;}
+   const hostedAddonUrl=safeHttpUrl(resource.addonFileUrl);
+   if(hostedAddonUrl){event.preventDefault();window.location.href=hostedAddonUrl;return;}
    if(resource.addonFileId){
      event.preventDefault();
      try{
@@ -454,7 +461,8 @@ function openDetail(resource){
      alert('Link atau file download belum ditambahkan. Buka Kelola Add-on → Edit, lalu upload file .mcaddon/.mcpack atau masukkan link download.');
    }
  };
- if(resource.image){cover.src=resource.image;cover.style.display='block';cover.alt='Sampul '+(resource.name||'resource');}
+ const safeCover=safeImageSource(resource.image);
+ if(safeCover){cover.src=safeCover;cover.style.display='block';cover.alt='Sampul '+(resource.name||'resource');}
  else{cover.removeAttribute('src');cover.style.display='none';}
  const tags=[resource.cat,resource.tag,resource.mode].filter(Boolean);
  document.getElementById('detailTags').innerHTML=tags.map(t=>'<span class="detail-pill">'+escapeHtml(t)+'</span>').join('');
@@ -462,12 +470,12 @@ function openDetail(resource){
  const featureItems=features.map(x=>String(x).trim()).filter(Boolean);
  document.getElementById('detailFeatures').innerHTML=featureItems.length?featureItems.map(x=>'<li>✓ '+escapeHtml(x)+'</li>').join(''):'<li class="detail-empty">Fitur belum ditambahkan.</li>';
  const gallery=Array.isArray(resource.gallery)?resource.gallery:(resource.gallery||'').split(',');
- const galleryItems=gallery.map(x=>String(x).trim()).filter(x=>/^https?:\/\//i.test(x));
+ const galleryItems=gallery.map(x=>safeHttpUrl(String(x).trim())).filter(Boolean);
  document.getElementById('detailGallery').innerHTML=galleryItems.length?galleryItems.map((url,i)=>'<img src="'+escapeHtml(url)+'" alt="Screenshot '+(i+1)+'" loading="lazy">').join(''):'<p class="detail-empty">Screenshot belum ditambahkan.</p>';
  document.querySelectorAll('.detail-tab').forEach((tab,i)=>tab.classList.toggle('active',i===0));
  document.querySelectorAll('.detail-tab-pane').forEach((pane,i)=>pane.classList.toggle('active',i===0));
  const related=resources.filter(r=>r!==resource).slice(0,4);
- document.getElementById('detailRelated').innerHTML=related.map(r=>`<div class="detail-related-card">${r.image?`<img src="${escapeHtml(r.image)}" alt="">`:''}<div>${escapeHtml(r.name)}</div></div>`).join('')||'<p class="detail-empty">Belum ada add-on lain.</p>';
+ document.getElementById('detailRelated').innerHTML=related.map(r=>{const img=safeImageSource(r.image);return `<div class="detail-related-card">${img?`<img src="${escapeHtml(img)}" alt="" loading="lazy">`:''}<div>${escapeHtml(r.name)}</div></div>`;}).join('')||'<p class="detail-empty">Belum ada add-on lain.</p>';
  overlay.classList.add('open');
  document.getElementById('closeDetail').focus();
 }
@@ -482,10 +490,13 @@ document.getElementById('detailOverlay').addEventListener('click',e=>{if(e.targe
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDetail();});
 function render(){
  const q=document.getElementById('search').value.toLowerCase();
- const rows=resources.filter(r=>(selected==='Semua'||r.cat===selected)&&(r.name+' '+r.desc+' '+r.cat).toLowerCase().includes(q));
- document.getElementById('grid').innerHTML=rows.length?rows.map((r,i)=>`<article class="card" tabindex="0" role="button" aria-label="Lihat detail ${r.name}" data-index="${resources.indexOf(r)}"><div class="thumb">${r.image?`<img src="${r.image}" alt="Sampul ${r.name}" style="width:100%;height:100%;object-fit:cover">`:r.icon}</div><div class="body"><span class="tag">${r.cat}</span><h3>${r.name}</h3><p>${r.desc}</p><div class="foot"><span class="version">${r.version}</span><span class="download">Lihat detail →</span></div></div></article>`).join(''):'<p class="about">Resource tidak ditemukan.</p>';
+ const rows=resources.filter(r=>(selected==='Semua'||r.cat===selected)&&((String(r.name||'')+' '+String(r.desc||'')+' '+String(r.cat||'')).toLowerCase().includes(q)));
+ document.getElementById('grid').innerHTML=rows.length?rows.map(r=>{
+   const image=safeImageSource(r.image);
+   return `<article class="card" tabindex="0" role="button" aria-label="Lihat detail ${escapeHtml(r.name||'Resource')}" data-index="${resources.indexOf(r)}"><div class="thumb">${image?`<img src="${escapeHtml(image)}" alt="Sampul ${escapeHtml(r.name||'resource')}" loading="lazy" style="width:100%;height:100%;object-fit:cover">`:escapeHtml(r.icon||'🧩')}</div><div class="body"><span class="tag">${escapeHtml(r.cat||'Resource')}</span><h3>${escapeHtml(r.name||'Tanpa nama')}</h3><p>${escapeHtml(r.desc||'')}</p><div class="foot"><span class="version">${escapeHtml(r.version||'')}</span><span class="download">Lihat detail →</span></div></div></article>`;
+ }).join(''):'<p class="about">Resource tidak ditemukan.</p>';
  document.querySelectorAll('#grid .card').forEach(card=>{
-   const show=()=>openDetail(resources[Number(card.dataset.index)]);
+   const show=()=>{const item=resources[Number(card.dataset.index)];if(item)openDetail(item);};
    card.addEventListener('click',show);
    card.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();show();}});
  });
@@ -504,6 +515,8 @@ function refreshAdminList(){
  list.querySelectorAll('[data-delete]').forEach(b=>b.addEventListener('click',()=>deleteResource(Number(b.dataset.delete))));
 }
 function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function safeHttpUrl(value){try{const u=new URL(String(value||''),location.href);return ['http:','https:'].includes(u.protocol)?u.href:'';}catch{return '';}}
+function safeImageSource(value){const v=String(value||'').trim();if(/^data:image\/(png|jpeg|jpg|webp|gif);base64,/i.test(v))return v;return safeHttpUrl(v);}
 function editResource(i){
  const r=resources[i];if(!r)return;
  document.getElementById('editId').value=String(i);
@@ -536,6 +549,8 @@ async function deleteResource(i){
  const item=resources[i];
  try{
    if(item.dbId){const {error}=await sbClient.from('addons').delete().eq('id',item.dbId);if(error)throw error;}
+   const paths=[item.addonFilePath,item.coverPath,...(Array.isArray(item.galleryPaths)?item.galleryPaths:[])].filter(Boolean);
+   if(paths.length){const {error:storageError}=await sbClient.storage.from(VANO_BUCKET).remove(paths);if(storageError)console.warn('Sebagian file Storage belum terhapus:',storageError.message);}
    resources.splice(i,1);persistResources();render();refreshAdminList();resetResourceForm();
  }catch(err){alert('Gagal menghapus dari database: '+err.message);}
 }
@@ -620,6 +635,8 @@ resourceForm.addEventListener('submit',async e=>{
   addonFilePath:oldItem?.addonFilePath||'',
   addonFileName:oldItem?.addonFileName||'',
   addonFileType:oldItem?.addonFileType||'',
+  coverPath:oldItem?.coverPath||'',
+  galleryPaths:Array.isArray(oldItem?.galleryPaths)?oldItem.galleryPaths.slice():[],
   url:document.getElementById('resourceUrl').value.trim()||'#'
  };
  if(addonFile){
@@ -633,6 +650,16 @@ resourceForm.addEventListener('submit',async e=>{
  }
  saveButton.textContent='Menyimpan ke database...';
  await saveCloudResource(item);
+ if(oldItem){
+   const replacedPaths=[];
+   if(coverFile&&oldItem.coverPath&&oldItem.coverPath!==item.coverPath)replacedPaths.push(oldItem.coverPath);
+   if(galleryFiles.length&&Array.isArray(oldItem.galleryPaths))replacedPaths.push(...oldItem.galleryPaths);
+   if(replacedPaths.length){const {error:cleanupError}=await sbClient.storage.from(VANO_BUCKET).remove(replacedPaths);if(cleanupError)console.warn('File lama belum terhapus:',cleanupError.message);}
+ }
+ if(addonFile&&oldItem?.addonFilePath&&oldItem.addonFilePath!==item.addonFilePath){
+   const {error:oldFileError}=await sbClient.storage.from(VANO_BUCKET).remove([oldItem.addonFilePath]);
+   if(oldFileError)console.warn('File add-on lama belum terhapus:',oldFileError.message);
+ }
  if(idx!=='')resources[Number(idx)]=item;else resources.unshift(item);
  persistResources();render();refreshAdminList();resetResourceForm();
  alert('Resource berhasil disimpan ke Supabase dan dapat dilihat pengunjung.');
@@ -641,42 +668,59 @@ resourceForm.addEventListener('submit',async e=>{
 });
 document.getElementById('exportResources').addEventListener('click',()=>{
  const blob=new Blob([JSON.stringify(resources,null,2)],{type:'application/json'});
- const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='vanoaddons-data.json';a.click();URL.revokeObjectURL(a.href);
+ const a=document.createElement('a');const objectUrl=URL.createObjectURL(blob);a.href=objectUrl;a.download='vanoaddons-data.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(objectUrl),1000);
 });
 document.getElementById('importResources').addEventListener('click',()=>document.getElementById('importFile').click());
 document.getElementById('importFile').addEventListener('change',async e=>{
  const file=e.target.files[0];if(!file)return;
  try{
+  if(!(await checkVanoAdmin()))throw new Error('Silakan masuk sebagai admin terlebih dahulu.');
   const data=JSON.parse(await file.text());
-  if(!Array.isArray(data)||!data.every(r=>r&&typeof r.name==='string'&&typeof r.cat==='string'))throw new Error('Format tidak sesuai');
-  if(!confirm('Ganti seluruh katalog dengan '+data.length+' resource dari file ini?'))return;
-  resources=data.map((r,i)=>({...r,id:r.id||'import-'+Date.now()+'-'+i}));persistResources();render();refreshAdminList();alert('Data berhasil diimpor.');
- }catch(err){alert('Gagal impor: file JSON tidak valid.');}
+  if(!Array.isArray(data)||!data.every(r=>r&&typeof r.name==='string'&&typeof r.cat==='string'))throw new Error('Format JSON tidak sesuai.');
+  if(!confirm('Impor '+data.length+' resource ke katalog Supabase? Data yang sudah ada tidak dihapus.'))return;
+  const imported=[];
+  for(let i=0;i<data.length;i++){
+    const item={...data[i],id:data[i].id||'import-'+Date.now()+'-'+i,dbId:data[i].dbId||null};
+    await saveCloudResource(item);
+    imported.push(item);
+  }
+  resources=imported.concat(resources.filter(old=>!imported.some(item=>item.id===old.id)));
+  persistResources();render();refreshAdminList();alert('Berhasil mengimpor '+imported.length+' resource ke Supabase.');
+ }catch(err){alert('Impor belum selesai: '+(err.message||'Periksa format JSON dan koneksi Supabase.'));}
  e.target.value='';
 });
 
 loadCloudResources().catch(err=>console.warn('Katalog cloud belum dapat dimuat:',err)).finally(()=>render());
 
-// Poster pilihan: ganti gambar dari perangkat (berlaku selama halaman dibuka).
+// Poster pilihan disimpan di Supabase Storage agar konsisten di semua perangkat.
 const posterInput = document.getElementById('posterInput');
 const featuredPoster = document.getElementById('featuredPoster');
 const posterHint = document.getElementById('posterHint');
+const VANO_POSTER_PATH='site/featured-poster.jpg';
+async function loadFeaturedPoster(){
+  const {data}=sbClient.storage.from(VANO_BUCKET).getPublicUrl(VANO_POSTER_PATH);
+  const url=data?.publicUrl;
+  if(!url)return;
+  const response=await fetch(url+'?v='+Date.now(),{cache:'no-store'});
+  if(response.ok){featuredPoster.src=url+'?v='+Date.now();posterHint.textContent='Poster VanoAddons.';}
+}
+loadFeaturedPoster().catch(err=>console.warn('Poster cloud belum tersedia:',err));
 posterInput.addEventListener('change', async event => {
   const file = event.target.files && event.target.files[0];
   if (!file) return;
   try {
     if (!(await checkVanoAdmin())) throw new Error('Hanya admin yang dapat mengganti poster. Silakan masuk melalui Kelola Add-on.');
     if (!file.type.startsWith('image/')) throw new Error('File harus berupa gambar.');
-    const reader = new FileReader();
-    reader.onload = () => {
-      featuredPoster.src = reader.result;
-      featuredPoster.alt = 'Poster pilihan VanoAddons';
-      posterHint.textContent = `Poster diganti: ${file.name} (hanya tampil di perangkat ini selama halaman dibuka).`;
-    };
-    reader.onerror = () => alert('Gagal membaca gambar poster.');
-    reader.readAsDataURL(file);
+    if(file.size>12*1024*1024)throw new Error('Ukuran poster maksimal 12 MB.');
+    const compressed=await compressImageFile(file,1800,.82);
+    const blob=await dataUrlToBlob(compressed);
+    await uploadCloudBlob(blob,VANO_POSTER_PATH,'image/jpeg');
+    const {data}=sbClient.storage.from(VANO_BUCKET).getPublicUrl(VANO_POSTER_PATH);
+    featuredPoster.src=data.publicUrl+'?v='+Date.now();
+    featuredPoster.alt='Poster pilihan VanoAddons';
+    posterHint.textContent='Poster berhasil diperbarui dan tersimpan untuk semua pengunjung.';
   } catch (err) {
-    alert(err.message);
+    alert('Gagal mengganti poster: '+err.message);
   } finally {
     posterInput.value = '';
   }
