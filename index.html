@@ -48,6 +48,13 @@ footer{border-top:1px solid #ffffff12;padding:24px 0 34px;color:var(--muted);fon
 .detail-video{display:block;width:100%;max-height:420px;background:#000;border-radius:14px;margin-top:10px}
 .detail-no-video{border:1px dashed #47715d;border-radius:14px;padding:28px;text-align:center;color:var(--muted);font-size:13px;margin-top:10px}
 .detail-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.detail-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 14px}
+.detail-tab{border:1px solid var(--line);background:#ffffff08;color:var(--muted);border-radius:10px;padding:10px 13px;font:inherit;font-size:12px;font-weight:800;cursor:pointer}
+.detail-tab.active{background:var(--green);border-color:var(--green);color:#062016}
+.detail-tab-panel{min-height:90px}
+.detail-gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.detail-gallery img{width:100%;max-height:300px;object-fit:contain;background:#08130f;border:1px solid var(--line);border-radius:12px}
+.detail-size{border:1px solid var(--line);border-radius:13px;background:#ffffff05;padding:18px;color:var(--mint);font-size:20px;font-weight:900}
 .detail-button{display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:10px;padding:11px 15px;background:var(--green);color:#062016;font-size:12px;font-weight:900}
 @media(max-width:560px){.detail-panel{padding:16px}.detail-overlay{padding:10px}}
 
@@ -130,6 +137,7 @@ footer{border-top:1px solid #ffffff12;padding:24px 0 34px;color:var(--muted);fon
     <label>Gambar sampul (opsional)<input id="addonImage" type="file" accept="image/*"></label>
     <label class="wide">File add-on (.mcaddon / .mcpack / .zip)<input id="addonFile" type="file" accept=".mcaddon,.mcpack,.zip,application/zip"></label>
     <label class="wide">Video preview (maksimal 50 MB)<input id="addonVideo" type="file" accept="video/*"></label>
+    <label class="wide">Foto detail (bisa pilih beberapa foto)<input id="addonDetailImages" type="file" accept="image/*" multiple></label>
     <label class="wide" style="display:flex;align-items:center;gap:9px"><input id="addonPublished" type="checkbox" checked style="width:auto"> Tampilkan di katalog publik</label>
     <div class="admin-actions wide"><button class="admin-save" id="saveAddon" type="submit">Simpan add-on</button><button class="admin-cancel" id="cancelEdit" type="button">Batal edit</button></div>
    </form>
@@ -260,53 +268,70 @@ function render() {
   grid.appendChild(article);
  });
 }
+function formatFileSize(bytes) {
+ const size = Number(bytes);
+ if (!Number.isFinite(size) || size <= 0) return 'Belum diketahui';
+ if (size < 1024 * 1024) return (size / 1024).toFixed(1) + ' KB';
+ return (size / (1024 * 1024)).toFixed(2) + ' MB';
+}
 function openAddonDetail(row) {
  const d = dataOf(row);
  document.getElementById('detailTitle').textContent = row.title || 'Detail Add-on';
  detailContent.replaceChildren();
- const image = safeImageSource(d.imageUrl) || safeImageSource(d.image) || safeImageSource(d.imagePath);
- if (image) {
-  const cover = document.createElement('img');
-  cover.className = 'detail-cover'; cover.src = image; cover.alt = row.title || 'Sampul add-on';
-  detailContent.appendChild(cover);
+ const coverUrl = safeImageSource(d.imageUrl) || safeImageSource(d.image) || safeImageSource(d.imagePath);
+ if (coverUrl) {
+  const cover = document.createElement('img'); cover.className = 'detail-cover';
+  cover.src = coverUrl; cover.alt = row.title || 'Sampul add-on'; detailContent.appendChild(cover);
  }
- const categoryLabel = document.createElement('div');
- categoryLabel.className = 'tag'; categoryLabel.style.marginTop = '15px';
- categoryLabel.textContent = d.category || 'Add-on';
- const heading = document.createElement('h3');
- heading.textContent = row.title || 'Add-on'; heading.style.margin = '8px 0';
- const description = document.createElement('p');
- description.className = 'detail-description';
- description.textContent = d.description || 'Belum ada deskripsi untuk add-on ini.';
- detailContent.append(categoryLabel, heading, description);
+ const categoryLabel = document.createElement('div'); categoryLabel.className = 'tag';
+ categoryLabel.style.marginTop = '15px'; categoryLabel.textContent = d.category || 'Add-on';
+ const heading = document.createElement('h3'); heading.textContent = row.title || 'Add-on'; heading.style.margin = '8px 0';
+ const tabs = document.createElement('div'); tabs.className = 'detail-tabs'; tabs.setAttribute('role','tablist');
+ const panel = document.createElement('div'); panel.className = 'detail-tab-panel';
+ const images = Array.isArray(d.detailImages) ? d.detailImages : [];
+ const photoUrls = images.map(item => safeImageSource(typeof item === 'string' ? item : item.path || item.url)).filter(Boolean);
  const videoUrl = d.videoPath ? safeHttpUrl(fileUrl(d.videoPath)) : '';
- const videoHeading = document.createElement('h3');
- videoHeading.textContent = 'Video Preview';
- videoHeading.style.cssText = 'font-size:15px;margin:20px 0 8px';
- detailContent.appendChild(videoHeading);
- if (videoUrl) {
-  const video = document.createElement('video');
-  video.className = 'detail-video'; video.controls = true; video.playsInline = true;
-  video.preload = 'metadata'; video.src = videoUrl;
-  detailContent.appendChild(video);
- } else {
-  const noVideo = document.createElement('div');
-  noVideo.className = 'detail-no-video'; noVideo.textContent = 'Video preview belum tersedia.';
-  detailContent.appendChild(noVideo);
+ const tabItems = [{name:'Deskripsi',key:'description'},{name:'Video Preview',key:'video'},{name:'Foto Detail',key:'photos'},{name:'Size',key:'size'}];
+ function showTab(key) {
+  tabs.querySelectorAll('button').forEach(btn => {
+   const active = btn.dataset.tab === key; btn.classList.toggle('active',active); btn.setAttribute('aria-selected',String(active));
+  });
+  panel.replaceChildren();
+  if (key === 'description') {
+   const p = document.createElement('p'); p.className = 'detail-description';
+   p.textContent = d.description || 'Belum ada deskripsi untuk add-on ini.'; panel.appendChild(p);
+  } else if (key === 'video') {
+   if (videoUrl) {
+    const video = document.createElement('video'); video.className = 'detail-video';
+    video.controls = true; video.playsInline = true; video.preload = 'metadata'; video.src = videoUrl; panel.appendChild(video);
+   } else {
+    const none = document.createElement('div'); none.className = 'detail-no-video';
+    none.textContent = 'Video preview belum tersedia.'; panel.appendChild(none);
+   }
+  } else if (key === 'photos') {
+   if (photoUrls.length) {
+    const gallery = document.createElement('div'); gallery.className = 'detail-gallery';
+    photoUrls.forEach((url,index) => { const img=document.createElement('img'); img.src=url; img.alt='Foto detail '+(index+1); img.loading='lazy'; gallery.appendChild(img); });
+    panel.appendChild(gallery);
+   } else {
+    const none=document.createElement('div'); none.className='detail-no-video'; none.textContent='Foto detail belum tersedia.'; panel.appendChild(none);
+   }
+  } else {
+   const size=document.createElement('div'); size.className='detail-size'; size.textContent=formatFileSize(d.fileSizeBytes || d.fileSize); panel.appendChild(size);
+   const note=document.createElement('p'); note.className='detail-description';
+   note.textContent=d.fileName ? 'Nama file: '+d.fileName : 'Ukuran file add-on.'; panel.appendChild(note);
+  }
  }
- const actions = document.createElement('div');
- actions.className = 'detail-actions';
- const href = displayUrl(row);
- if (href) {
-  const download = document.createElement('a');
-  download.className = 'detail-button'; download.href = href;
-  download.target = '_blank'; download.rel = 'noopener noreferrer';
-  download.textContent = 'UNDUH ADD-ON ↗';
-  actions.appendChild(download);
- }
- if (actions.childElementCount) detailContent.appendChild(actions);
- detailOverlay.classList.add('open');
- document.body.style.overflow = 'hidden';
+ tabItems.forEach(item => {
+  const button=document.createElement('button'); button.type='button'; button.className='detail-tab';
+  button.textContent=item.name; button.dataset.tab=item.key; button.setAttribute('role','tab');
+  button.addEventListener('click',()=>showTab(item.key)); tabs.appendChild(button);
+ });
+ detailContent.append(categoryLabel,heading,tabs,panel); showTab('description');
+ const actions=document.createElement('div'); actions.className='detail-actions'; const href=displayUrl(row);
+ if(href){const download=document.createElement('a');download.className='detail-button';download.href=href;download.target='_blank';download.rel='noopener noreferrer';download.textContent='UNDUH ADD-ON ↗';actions.appendChild(download);}
+ if(actions.childElementCount)detailContent.appendChild(actions);
+ detailOverlay.classList.add('open'); document.body.style.overflow='hidden';
 }
 function closeAddonDetail() {
  const player = detailContent.querySelector('video');
@@ -332,6 +357,7 @@ function resetForm() {
  document.getElementById('editId').value = '';
  document.getElementById('addonPublished').checked = true;
  document.getElementById('addonVideo').value = '';
+ document.getElementById('addonDetailImages').value = '';
  document.getElementById('saveAddon').textContent = 'Simpan add-on';
  setStatus('');
 }
@@ -423,12 +449,20 @@ async function saveRow(event) {
   const imageFile = document.getElementById('addonImage').files[0];
   const addonFile = document.getElementById('addonFile').files[0];
   const videoFile = document.getElementById('addonVideo').files[0];
+  const detailImageFiles = Array.from(document.getElementById('addonDetailImages').files || []);
   if (videoFile && !videoFile.type.startsWith('video/')) throw new Error('Pilih file video yang valid.');
   if (videoFile && videoFile.size > 50 * 1024 * 1024) throw new Error('Ukuran video maksimal 50 MB.');
   setStatus('Mengunggah file ke penyimpanan online...');
   const imagePath = imageFile ? await uploadAsset(imageFile,'images') : (oldData.imagePath || null);
   const filePath = addonFile ? await uploadAsset(addonFile,'addons') : (oldData.filePath || null);
   const videoPath = videoFile ? await uploadAsset(videoFile,'videos') : (oldData.videoPath || null);
+  const uploadedDetailImages = [];
+  for (const detailImage of detailImageFiles) {
+   if (!detailImage.type.startsWith('image/')) throw new Error('Foto detail harus berupa file gambar.');
+   uploadedDetailImages.push(await uploadAsset(detailImage,'detail-images'));
+  }
+  const detailImages = [...(Array.isArray(oldData.detailImages) ? oldData.detailImages : []), ...uploadedDetailImages];
+  const fileSizeBytes = addonFile ? addonFile.size : (oldData.fileSizeBytes || oldData.fileSize || null);
   const data = {
    category: categoryValue,
    description,
@@ -436,6 +470,8 @@ async function saveRow(event) {
    imagePath,
    filePath,
    videoPath,
+   detailImages,
+   fileSizeBytes,
    fileName: addonFile ? addonFile.name : (oldData.fileName || ''),
    updatedAt: new Date().toISOString()
   };
