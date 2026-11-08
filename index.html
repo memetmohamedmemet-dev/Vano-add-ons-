@@ -610,5 +610,23 @@ render();
 loadCloudResources();
 updateAdminAuthUI();
 </script>
+<script>
+/* Fallback admin button handler: keeps the admin panel reachable if another script handler fails. */
+(function(){
+  var button=document.getElementById('openAdmin');
+  var overlay=document.getElementById('adminOverlay');
+  if(!button||!overlay)return;
+  button.addEventListener('click',function(event){
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    overlay.classList.add('open');
+    overlay.setAttribute('aria-hidden','false');
+    try{
+      if(typeof refreshAdminList==='function')refreshAdminList();
+      if(typeof updateAdminAuthUI==='function')updateAdminAuthUI().catch(function(error){console.error('Admin status:',error);});
+    }catch(error){console.error('Admin panel:',error);}
+  },true);
+})();
+</script>
 </body>
 </html>
