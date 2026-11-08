@@ -208,6 +208,7 @@ function render() {
    const img = document.createElement('img');
    img.src = image; img.alt = ''; img.loading = 'lazy';
    img.style.cssText = 'width:100%;height:100%;object-fit:cover';
+   img.addEventListener('error', () => { img.remove(); thumb.textContent = '▧'; }, { once: true });
    thumb.appendChild(img);
   } else thumb.textContent = '▧';
   const body = document.createElement('div');
