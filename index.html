@@ -136,6 +136,7 @@ footer{border-top:1px solid #ffffff12;padding:24px 0 34px;color:var(--muted);fon
     <label>Link unduhan (opsional)<input id="addonDownload" type="url" placeholder="https://..."></label>
     <label>Gambar sampul (opsional)<input id="addonImage" type="file" accept="image/*"></label>
     <label class="wide">File add-on (.mcaddon / .mcpack / .zip)<input id="addonFile" type="file" accept=".mcaddon,.mcpack,.zip,application/zip"></label>
+    <label class="wide">Ukuran file add-on<input id="addonSizeDisplay" type="text" value="" placeholder="Pilih file add-on untuk melihat ukurannya" readonly><small class="admin-note" id="addonSizeHint">Ukuran akan terisi otomatis saat file dipilih.</small></label>
     <label class="wide">Video preview (maksimal 50 MB)<input id="addonVideo" type="file" accept="video/*"></label>
     <label class="wide">Foto detail (bisa pilih beberapa foto)<input id="addonDetailImages" type="file" accept="image/*" multiple></label>
     <label class="wide" style="display:flex;align-items:center;gap:9px"><input id="addonPublished" type="checkbox" checked style="width:auto"> Tampilkan di katalog publik</label>
@@ -358,6 +359,8 @@ function resetForm() {
  document.getElementById('addonPublished').checked = true;
  document.getElementById('addonVideo').value = '';
  document.getElementById('addonDetailImages').value = '';
+ document.getElementById('addonSizeDisplay').value = '';
+ document.getElementById('addonSizeHint').textContent = 'Ukuran akan terisi otomatis saat file dipilih.';
  document.getElementById('saveAddon').textContent = 'Simpan add-on';
  setStatus('');
 }
@@ -411,6 +414,8 @@ function editRow(row) {
  document.getElementById('addonCategory').value = d.category || 'Other';
  document.getElementById('addonDescription').value = d.description || '';
  document.getElementById('addonDownload').value = d.downloadUrl || '';
+ document.getElementById('addonSizeDisplay').value = d.fileSizeBytes || d.fileSize ? formatFileSize(d.fileSizeBytes || d.fileSize) : 'Belum diketahui';
+ document.getElementById('addonSizeHint').textContent = d.fileName ? 'File tersimpan: ' + d.fileName : 'Pilih file baru jika ingin memperbarui ukuran.';
  document.getElementById('addonPublished').checked = row.published !== false;
  document.getElementById('saveAddon').textContent = 'Simpan perubahan';
  setStatus('Mode edit. Pilih gambar atau file baru hanya jika ingin menggantinya.');
@@ -536,6 +541,11 @@ document.getElementById('logoutButton').addEventListener('click',async()=>{
  await sb.auth.signOut();currentSession=null;showAdminState(false);resetForm();setStatus('Kamu sudah keluar dari akun admin.');
 });
 document.getElementById('cancelEdit').addEventListener('click',resetForm);
+document.getElementById('addonFile').addEventListener('change', event => {
+ const file = event.target.files && event.target.files[0];
+ document.getElementById('addonSizeDisplay').value = file ? formatFileSize(file.size) : '';
+ document.getElementById('addonSizeHint').textContent = file ? 'File dipilih: ' + file.name : 'Ukuran akan terisi otomatis saat file dipilih.';
+});
 form.addEventListener('submit',saveRow);
 search.addEventListener('input',render);
 category.addEventListener('change',render);
