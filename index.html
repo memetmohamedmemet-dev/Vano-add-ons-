@@ -274,8 +274,8 @@ const starterResources=[
 {name:'Fantasy Skin Pack',cat:'Skin',desc:'Contoh koleksi skin untuk karakter Minecraft.',version:'Skin Pack',icon:'🧑',url:'#'},
 {name:'Cozy Decorations',cat:'Add-on',desc:'Contoh dekorasi untuk membuat rumah lebih nyaman.',version:'Bedrock • cek versi',icon:'🏡',url:'#'}
 ];
-const SUPABASE_URL='https://bjajvzjbcucziffzxsah.supabase.co';
-const SUPABASE_PUBLISHABLE_KEY='sb_publishable_qemJfNuMFzq2-UjrhCeR4w_pNHLul7g';
+const SUPABASE_URL='https://hxebxkoqmybpqcfobluc.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY='sb_publishable_HMg8zsfjDoh_QIn614pK9w_4Om0sF88';
 const supabase = window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
 const STORAGE_KEY='vanoaddons_resources_v1';
 function loadResources(){
@@ -331,14 +331,19 @@ async function uploadResourceAssets(item,oldItem,addonFile){
 async function saveResourceToCloud(item){
  const {data:sessionData}=await supabase.auth.getSession();
  if(!sessionData.session)throw new Error('Silakan masuk sebagai admin terlebih dahulu.');
- const {error}=await supabase.from('resources').upsert({id:item.id,data:item,sort_order:Date.now(),updated_at:new Date().toISOString()},{onConflict:'id'});
- if(error)throw error;
+ const {data:existing,error:findError}=await supabase.from('addons').select('id').eq('data->>id',String(item.id)).limit(1).maybeSingle();
+ if(findError)throw findError;
+ const row={title:item.title||item.name||'Untitled',data:item,published:item.published!==false};
+ const result=existing
+   ? await supabase.from('addons').update(row).eq('id',existing.id)
+   : await supabase.from('addons').insert(row);
+ if(result.error)throw result.error;
 }
 async function loadCloudResources(){
  try{
-   const {data,error}=await supabase.from('resources').select('id,data,sort_order').order('sort_order',{ascending:false});
+   const {data,error}=await supabase.from('addons').select('id,title,data,published').order('id',{ascending:false});
    if(error)throw error;
-   if(Array.isArray(data)&&data.length){resources=data.map(row=>({...row.data,id:row.id}));persistResources();render();}
+   if(Array.isArray(data)&&data.length){resources=data.map(row=>({...row.data,id:row.data?.id??String(row.id),title:row.data?.title||row.title,published:row.published}));persistResources();render();}
    else {resources=localResourcesAtStart.slice();render();}
  }catch(error){console.error('Supabase load error:',error);resources=localResourcesAtStart.slice();render();}
 }
@@ -506,7 +511,9 @@ async function deleteResource(i){
  if(!confirm('Hapus resource ini dari katalog online?'))return;
  try{
    const item=resources[i];
-   const {error}=await supabase.from('resources').delete().eq('id',item.id);
+   const {data:matches,error:findError}=await supabase.from('addons').select('id').eq('data->>id',String(item.id));
+   if(findError)throw findError;
+   const {error}=matches?.length?await supabase.from('addons').delete().in('id',matches.map(row=>row.id)):{error:null};
    if(error)throw error;
    resources.splice(i,1);persistResources();render();refreshAdminList();resetResourceForm();
  }catch(error){alert('Gagal menghapus: '+(error.message||error));}
