@@ -35,6 +35,22 @@ footer{border-top:1px solid #ffffff12;padding:24px 0 34px;color:var(--muted);fon
 @media(max-width:760px){.hero{grid-template-columns:1fr;padding:34px 0 28px;gap:20px}.visual{min-height:220px}.navlinks{display:none}.grid{grid-template-columns:1fr 1fr}h1{letter-spacing:-2.5px}.section-head{align-items:start;flex-direction:column}}
 @media(max-width:480px){.grid{grid-template-columns:1fr}.stats{gap:20px}.wrap{width:min(100% - 28px,1120px)}footer{flex-direction:column}}
 
+
+/* Add-on detail */
+.detail-overlay{position:fixed;inset:0;z-index:45;background:#020806e8;backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:16px}
+.detail-overlay.open{display:flex}
+.detail-panel{width:min(760px,100%);max-height:90vh;overflow:auto;background:#0e1b16;border:1px solid #47715d;border-radius:20px;padding:20px;box-shadow:0 25px 90px #000b}
+.detail-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
+.detail-head h2{font-size:21px;margin:0}
+.detail-close{border:1px solid var(--line);background:#ffffff08;color:var(--text);border-radius:10px;padding:9px 12px;cursor:pointer}
+.detail-cover{width:100%;max-height:340px;object-fit:cover;border-radius:14px;background:#14251f}
+.detail-description{color:var(--muted);font-size:13px;line-height:1.75;white-space:pre-wrap}
+.detail-video{display:block;width:100%;max-height:420px;background:#000;border-radius:14px;margin-top:10px}
+.detail-no-video{border:1px dashed #47715d;border-radius:14px;padding:28px;text-align:center;color:var(--muted);font-size:13px;margin-top:10px}
+.detail-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.detail-button{display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:10px;padding:11px 15px;background:var(--green);color:#062016;font-size:12px;font-weight:900}
+@media(max-width:560px){.detail-panel{padding:16px}.detail-overlay{padding:10px}}
+
 /* Admin workspace */
 .admin-overlay{position:fixed;inset:0;z-index:50;background:#020806dd;backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:16px}
 .admin-overlay.open{display:flex}
@@ -113,12 +129,20 @@ footer{border-top:1px solid #ffffff12;padding:24px 0 34px;color:var(--muted);fon
     <label>Link unduhan (opsional)<input id="addonDownload" type="url" placeholder="https://..."></label>
     <label>Gambar sampul (opsional)<input id="addonImage" type="file" accept="image/*"></label>
     <label class="wide">File add-on (.mcaddon / .mcpack / .zip)<input id="addonFile" type="file" accept=".mcaddon,.mcpack,.zip,application/zip"></label>
+    <label class="wide">Video preview (maksimal 50 MB)<input id="addonVideo" type="file" accept="video/*"></label>
     <label class="wide" style="display:flex;align-items:center;gap:9px"><input id="addonPublished" type="checkbox" checked style="width:auto"> Tampilkan di katalog publik</label>
     <div class="admin-actions wide"><button class="admin-save" id="saveAddon" type="submit">Simpan add-on</button><button class="admin-cancel" id="cancelEdit" type="button">Batal edit</button></div>
    </form>
    <div class="admin-status" id="adminStatus" role="status"></div>
    <div class="admin-list"><strong>Daftar add-on</strong><div id="adminItems" class="admin-note" style="margin-top:8px">Memuat data...</div></div>
   </div>
+ </section>
+</div>
+
+<div class="detail-overlay" id="detailOverlay" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+ <section class="detail-panel">
+  <div class="detail-head"><h2 id="detailTitle">Detail Add-on</h2><button class="detail-close" id="closeDetail" type="button">Tutup ✕</button></div>
+  <div id="detailContent"></div>
  </section>
 </div>
 
@@ -147,6 +171,8 @@ const form = document.getElementById('addonForm');
 let addonRows = [];
 let isAdmin = false;
 let currentSession = null;
+const detailOverlay = document.getElementById('detailOverlay');
+const detailContent = document.getElementById('detailContent');
 
 function escapeHtml(value) {
  return String(value ?? '').replace(/[&<>"']/g, ch => ({
@@ -223,11 +249,72 @@ function render() {
   const href = displayUrl(row);
   if (href) { link.href = href; link.target = '_blank'; link.rel = 'noopener noreferrer'; }
   else { link.href = '#'; link.textContent = 'FILE BELUM TERSEDIA'; link.style.opacity = '.6'; link.addEventListener('click', e => e.preventDefault()); }
-  body.append(tag,title,desc,link);
+  const detailButton = document.createElement('button');
+  detailButton.type = 'button';
+  detailButton.className = 'download';
+  detailButton.textContent = 'LIHAT DETAIL';
+  detailButton.style.cssText = 'margin-left:7px;border:1px solid #6ce5a455;background:transparent;color:var(--green);cursor:pointer';
+  detailButton.addEventListener('click', () => openAddonDetail(row));
+  body.append(tag,title,desc,detailButton,link);
   article.append(thumb,body);
   grid.appendChild(article);
  });
 }
+function openAddonDetail(row) {
+ const d = dataOf(row);
+ document.getElementById('detailTitle').textContent = row.title || 'Detail Add-on';
+ detailContent.replaceChildren();
+ const image = safeImageSource(d.imageUrl) || safeImageSource(d.image) || safeImageSource(d.imagePath);
+ if (image) {
+  const cover = document.createElement('img');
+  cover.className = 'detail-cover'; cover.src = image; cover.alt = row.title || 'Sampul add-on';
+  detailContent.appendChild(cover);
+ }
+ const categoryLabel = document.createElement('div');
+ categoryLabel.className = 'tag'; categoryLabel.style.marginTop = '15px';
+ categoryLabel.textContent = d.category || 'Add-on';
+ const heading = document.createElement('h3');
+ heading.textContent = row.title || 'Add-on'; heading.style.margin = '8px 0';
+ const description = document.createElement('p');
+ description.className = 'detail-description';
+ description.textContent = d.description || 'Belum ada deskripsi untuk add-on ini.';
+ detailContent.append(categoryLabel, heading, description);
+ const videoUrl = d.videoPath ? safeHttpUrl(fileUrl(d.videoPath)) : '';
+ const videoHeading = document.createElement('h3');
+ videoHeading.textContent = 'Video Preview';
+ videoHeading.style.cssText = 'font-size:15px;margin:20px 0 8px';
+ detailContent.appendChild(videoHeading);
+ if (videoUrl) {
+  const video = document.createElement('video');
+  video.className = 'detail-video'; video.controls = true; video.playsInline = true;
+  video.preload = 'metadata'; video.src = videoUrl;
+  detailContent.appendChild(video);
+ } else {
+  const noVideo = document.createElement('div');
+  noVideo.className = 'detail-no-video'; noVideo.textContent = 'Video preview belum tersedia.';
+  detailContent.appendChild(noVideo);
+ }
+ const actions = document.createElement('div');
+ actions.className = 'detail-actions';
+ const href = displayUrl(row);
+ if (href) {
+  const download = document.createElement('a');
+  download.className = 'detail-button'; download.href = href;
+  download.target = '_blank'; download.rel = 'noopener noreferrer';
+  download.textContent = 'UNDUH ADD-ON ↗';
+  actions.appendChild(download);
+ }
+ if (actions.childElementCount) detailContent.appendChild(actions);
+ detailOverlay.classList.add('open');
+ document.body.style.overflow = 'hidden';
+}
+function closeAddonDetail() {
+ const player = detailContent.querySelector('video');
+ if (player) { player.pause(); player.removeAttribute('src'); player.load(); }
+ detailOverlay.classList.remove('open');
+ document.body.style.overflow = '';
+}
+
 async function loadPublicAddons() {
  const { data, error } = await sb.from(TABLE).select('id,title,data,published').eq('published', true).order('id', {ascending:false});
  if (error) throw error;
@@ -244,6 +331,7 @@ function resetForm() {
  form.reset();
  document.getElementById('editId').value = '';
  document.getElementById('addonPublished').checked = true;
+ document.getElementById('addonVideo').value = '';
  document.getElementById('saveAddon').textContent = 'Simpan add-on';
  setStatus('');
 }
@@ -334,15 +422,20 @@ async function saveRow(event) {
   const oldData = dataOf(old);
   const imageFile = document.getElementById('addonImage').files[0];
   const addonFile = document.getElementById('addonFile').files[0];
+  const videoFile = document.getElementById('addonVideo').files[0];
+  if (videoFile && !videoFile.type.startsWith('video/')) throw new Error('Pilih file video yang valid.');
+  if (videoFile && videoFile.size > 50 * 1024 * 1024) throw new Error('Ukuran video maksimal 50 MB.');
   setStatus('Mengunggah file ke penyimpanan online...');
   const imagePath = imageFile ? await uploadAsset(imageFile,'images') : (oldData.imagePath || null);
   const filePath = addonFile ? await uploadAsset(addonFile,'addons') : (oldData.filePath || null);
+  const videoPath = videoFile ? await uploadAsset(videoFile,'videos') : (oldData.videoPath || null);
   const data = {
    category: categoryValue,
    description,
    downloadUrl,
    imagePath,
    filePath,
+   videoPath,
    fileName: addonFile ? addonFile.name : (oldData.fileName || ''),
    updatedAt: new Date().toISOString()
   };
@@ -386,6 +479,8 @@ document.getElementById('openAdmin').addEventListener('click', async () => {
  try { await checkAdmin(); } catch (error) { setStatus('Gagal memuat panel admin: '+error.message,true); }
 });
 document.getElementById('closeAdmin').addEventListener('click',closeAdmin);
+document.getElementById('closeDetail').addEventListener('click',closeAddonDetail);
+detailOverlay.addEventListener('click',e=>{if(e.target===detailOverlay)closeAddonDetail();});
 overlay.addEventListener('click',e=>{if(e.target===overlay)closeAdmin();});
 document.getElementById('loginButton').addEventListener('click',async()=>{
  const email=document.getElementById('adminEmail').value.trim();
