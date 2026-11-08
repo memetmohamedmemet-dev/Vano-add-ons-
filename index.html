@@ -159,6 +159,11 @@ function safeHttpUrl(value) {
   return (url.protocol === 'https:' || url.protocol === 'http:') ? url.href : '';
  } catch (_) { return ''; }
 }
+function safeImageSource(value) {
+ const raw = String(value || '').trim();
+ if (/^data:image\/(?:png|jpe?g|gif|webp|bmp);base64,/i.test(raw)) return raw;
+ return safeHttpUrl(raw);
+}
 function dataOf(row) {
  return row && row.data && typeof row.data === 'object' ? row.data : {};
 }
@@ -196,7 +201,9 @@ function render() {
   article.className = 'addon';
   const thumb = document.createElement('div');
   thumb.className = 'thumb';
-  const image = safeHttpUrl(d.imageUrl) || safeHttpUrl(fileUrl(d.imagePath));
+  // Kompatibilitas dengan data lama: website sebelumnya menyimpan sampul pada data.image.
+  const image = safeImageSource(d.imageUrl) || safeImageSource(d.image) ||
+   safeImageSource(d.imagePath) || safeHttpUrl(fileUrl(d.imagePath));
   if (image) {
    const img = document.createElement('img');
    img.src = image; img.alt = ''; img.loading = 'lazy';
