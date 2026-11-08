@@ -161,8 +161,11 @@ function safeHttpUrl(value) {
 }
 function safeImageSource(value) {
  const raw = String(value || '').trim();
+ if (!raw) return '';
  if (/^data:image\/(?:png|jpe?g|gif|webp|bmp);base64,/i.test(raw)) return raw;
- return safeHttpUrl(raw);
+ if (/^https?:\/\//i.test(raw)) return safeHttpUrl(raw);
+ // Nilai lama kadang menyimpan path objek Storage, bukan URL lengkap.
+ return safeHttpUrl(fileUrl(raw));
 }
 function dataOf(row) {
  return row && row.data && typeof row.data === 'object' ? row.data : {};
@@ -203,7 +206,7 @@ function render() {
   thumb.className = 'thumb';
   // Kompatibilitas dengan data lama: website sebelumnya menyimpan sampul pada data.image.
   const image = safeImageSource(d.imageUrl) || safeImageSource(d.image) ||
-   safeImageSource(d.imagePath) || safeHttpUrl(fileUrl(d.imagePath));
+   safeImageSource(d.imagePath);
   if (image) {
    const img = document.createElement('img');
    img.src = image; img.alt = ''; img.loading = 'lazy';
