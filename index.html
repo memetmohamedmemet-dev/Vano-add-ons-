@@ -366,12 +366,18 @@ async function deleteRow(row) {
  try {
   setStatus('Menghapus add-on...');
   if (!(await checkAdmin())) throw new Error('Sesi admin tidak valid.');
-  const { error } = await sb.from(TABLE).delete().eq('id',row.id);
+  const { data: deletedRows, error } = await sb.from(TABLE).delete().eq('id',row.id).select('id');
   if (error) throw error;
+  if (!deletedRows || deletedRows.length === 0) {
+   throw new Error('Database tidak menghapus baris ini. Kemungkinan izin DELETE (RLS) untuk admin belum diaktifkan di Supabase.');
+  }
   await loadAdminRows();
   await loadPublicAddons();
   setStatus('Add-on berhasil dihapus.');
- } catch (error) { setStatus('Gagal menghapus: ' + (error.message || String(error)),true); }
+ } catch (error) {
+  console.error('VanoAddons delete error:',error);
+  setStatus('Gagal menghapus: ' + (error.message || String(error)),true);
+ }
 }
 
 document.getElementById('openAdmin').addEventListener('click', async () => {
