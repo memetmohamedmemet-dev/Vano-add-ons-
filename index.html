@@ -291,8 +291,8 @@ function openAddonDetail(row) {
   const cover = document.createElement('img'); cover.className = 'detail-cover';
   cover.src = coverUrl; cover.alt = row.title || 'Sampul add-on'; detailContent.appendChild(cover);
  }
- const categoryLabel = document.createElement('div'); categoryLabel.className = 'tag';
- categoryLabel.style.marginTop = '15px'; categoryLabel.textContent = categoryLabel(d.category);
+ const categoryTag = document.createElement('div'); categoryTag.className = 'tag';
+ categoryTag.style.marginTop = '15px'; categoryTag.textContent = categoryLabel(d.category);
  const heading = document.createElement('h3'); heading.textContent = row.title || 'Add-on'; heading.style.margin = '8px 0';
  const tabs = document.createElement('div'); tabs.className = 'detail-tabs'; tabs.setAttribute('role','tablist');
  const panel = document.createElement('div'); panel.className = 'detail-tab-panel';
@@ -335,7 +335,7 @@ function openAddonDetail(row) {
   button.textContent=item.name; button.dataset.tab=item.key; button.setAttribute('role','tab');
   button.addEventListener('click',()=>showTab(item.key)); tabs.appendChild(button);
  });
- detailContent.append(categoryLabel,heading,tabs,panel); showTab('description');
+ detailContent.append(categoryTag,heading,tabs,panel); showTab('description');
  const actions=document.createElement('div'); actions.className='detail-actions'; const href=displayUrl(row);
  if(href){const download=document.createElement('a');download.className='detail-button';download.href=href;download.target='_blank';download.rel='noopener noreferrer';download.textContent='UNDUH ADD-ON ↗';actions.appendChild(download);}
  if(actions.childElementCount)detailContent.appendChild(actions);
