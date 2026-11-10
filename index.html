@@ -416,7 +416,7 @@ function openAddonDetail(row) {
  const images = Array.isArray(d.detailImages) ? d.detailImages : [];
  const photoUrls = images.map(item => safeImageSource(typeof item === 'string' ? item : item.path || item.url)).filter(Boolean);
  const videoUrl = d.videoPath ? safeHttpUrl(fileUrl(d.videoPath)) : '';
- const tabItems = [{name:'Deskripsi',key:'description'},{name:'Video Preview',key:'video'},{name:'Foto Detail',key:'photos'},{name:'Size',key:'size'}];
+ const tabItems = [{name:'Deskripsi',key:'description'}, ...(videoUrl ? [{name:'Video Preview',key:'video'}] : []), ...(photoUrls.length ? [{name:'Foto Detail',key:'photos'}] : []), {name:'Size',key:'size'}];
  function showTab(key) {
   tabs.querySelectorAll('button').forEach(btn => {
    const active = btn.dataset.tab === key; btn.classList.toggle('active',active); btn.setAttribute('aria-selected',String(active));
