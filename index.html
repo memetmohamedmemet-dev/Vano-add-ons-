@@ -110,6 +110,26 @@ footer{border-top:1px solid #ffffff12;padding:24px 0 34px;color:var(--muted);fon
  #catalogSections .download{padding:10px 12px;font-size:10px;margin:7px 7px 0 0}
 }
 
+/* Tampilan daftar saat satu kategori dipilih */
+#catalogSections.list-mode .grid{display:grid;grid-auto-flow:row;grid-auto-columns:initial;grid-template-columns:minmax(0,1fr);gap:12px;overflow:visible;padding:2px 0 14px;scroll-snap-type:none}
+#catalogSections.list-mode .addon.list-card{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);align-items:stretch;overflow:hidden;border-radius:14px;min-width:0}
+#catalogSections.list-mode .addon.list-card .thumb{height:auto;aspect-ratio:1.35;min-height:100%;align-self:stretch}
+#catalogSections.list-mode .addon.list-card .addon-body{padding:12px;min-width:0;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px}
+#catalogSections.list-mode .addon.list-card .tag{font-size:10px;margin-bottom:4px}
+#catalogSections.list-mode .addon.list-card h3{font-size:15px;line-height:1.3;margin:2px 0 4px;overflow-wrap:anywhere}
+#catalogSections.list-mode .addon.list-card .creator-line{font-size:12px;margin:2px 0 5px}
+#catalogSections.list-mode .addon.list-card .addon-summary{font-size:11px;line-height:1.35;max-height:2.7em;margin:3px 0 5px}
+#catalogSections.list-mode .addon.list-card .download{font-size:9px;padding:7px 8px;margin:5px 5px 0 0}
+@media(max-width:480px){
+ #catalogSections.list-mode .grid{gap:10px}
+ #catalogSections.list-mode .addon.list-card{grid-template-columns:minmax(0,1.02fr) minmax(0,1fr)}
+ #catalogSections.list-mode .addon.list-card .addon-body{padding:9px}
+ #catalogSections.list-mode .addon.list-card h3{font-size:13px}
+ #catalogSections.list-mode .addon.list-card .creator-line{font-size:11px}
+ #catalogSections.list-mode .addon.list-card .addon-summary{font-size:10px}
+ #catalogSections.list-mode .addon.list-card .download{font-size:8px;padding:6px 7px}
+}
+
 </style>
 </head>
 <body>
@@ -274,7 +294,7 @@ function render() {
  function makeCard(row) {
   const d = dataOf(row);
   const article = document.createElement('article');
-  article.className = 'addon';
+  article.className = 'addon' + (c !== 'all' ? ' list-card' : '');
   const thumb = document.createElement('div');
   thumb.className = 'thumb';
   const image = safeImageSource(d.imageUrl) || safeImageSource(d.image) || safeImageSource(d.imagePath);
@@ -307,20 +327,33 @@ function render() {
   article.append(thumb,body);
   return article;
  }
- groups.forEach(group => {
-  const rows = visible.filter(group.match);
-  if (!rows.length) return;
+ if (c !== 'all') {
   const section = document.createElement('section');
   section.className = 'catalog-group';
   const heading = document.createElement('h3');
   heading.className = 'catalog-group-title';
-  heading.textContent = group.title;
+  heading.textContent = categoryLabel(c).toUpperCase();
   const cards = document.createElement('div');
-  cards.className = 'grid';
-  rows.forEach(row => cards.appendChild(makeCard(row)));
+  cards.className = 'grid list-grid';
+  visible.forEach(row => cards.appendChild(makeCard(row)));
   section.append(heading,cards);
   sections.appendChild(section);
- });
+ } else {
+  groups.forEach(group => {
+   const rows = visible.filter(group.match);
+   if (!rows.length) return;
+   const section = document.createElement('section');
+   section.className = 'catalog-group';
+   const heading = document.createElement('h3');
+   heading.className = 'catalog-group-title';
+   heading.textContent = group.title;
+   const cards = document.createElement('div');
+   cards.className = 'grid';
+   rows.forEach(row => cards.appendChild(makeCard(row)));
+   section.append(heading,cards);
+   sections.appendChild(section);
+  });
+ }
 }
 
 function formatFileSize(bytes) {
