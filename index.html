@@ -284,6 +284,7 @@ function render() {
   empty.querySelector('p').textContent = 'Coba kata kunci atau kategori yang berbeda.';
  }
  const sections = document.getElementById('catalogSections');
+ sections.classList.toggle('list-mode', c !== 'all');
  sections.replaceChildren();
  const groups = [
   {title:'ADD-ONS', match: row => !['Skin','Texture','Map'].includes(String(dataOf(row).category || 'Other'))},
