@@ -45,6 +45,7 @@ footer{border-top:1px solid #ffffff12;padding:24px 0 34px;color:var(--muted);fon
 .detail-head h2{font-size:21px;margin:0}
 .detail-close{border:1px solid var(--line);background:#ffffff08;color:var(--text);border-radius:10px;padding:9px 12px;cursor:pointer}
 .detail-cover{width:100%;max-height:340px;object-fit:cover;border-radius:14px;background:#14251f}
+.detail-title-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:8px 0 12px;min-width:0}.detail-title-row h3{font-size:20px;line-height:1.3;margin:0;min-width:0;overflow-wrap:anywhere}.detail-title-size{flex:0 0 auto;color:#dfc7ff;background:#241a30;border:1px solid #bd8aff66;border-radius:9px;padding:6px 10px;font-size:12px;font-weight:900;white-space:nowrap}
 .detail-description{color:var(--muted);font-size:13px;line-height:1.75;white-space:pre-wrap}
 .detail-video{display:block;width:100%;max-height:420px;background:#000;border-radius:14px;margin-top:10px}
 .detail-no-video{border:1px dashed #604574;border-radius:14px;padding:28px;text-align:center;color:var(--muted);font-size:13px;margin-top:10px}
@@ -428,7 +429,12 @@ function openAddonDetail(row) {
  }
  const categoryTag = document.createElement('div'); categoryTag.className = 'tag';
  categoryTag.style.marginTop = '15px'; categoryTag.textContent = categoryLabel(d.category);
- const heading = document.createElement('h3'); heading.textContent = row.title || 'Add-on'; heading.style.margin = '8px 0';
+ const headingRow = document.createElement('div'); headingRow.className = 'detail-title-row';
+ const heading = document.createElement('h3'); heading.textContent = row.title || 'Add-on';
+ const detailSizeText = String(d.fileSizeLabel || '').trim() || formatFileSize(d.fileSizeBytes || d.fileSize);
+ if (detailSizeText && detailSizeText !== 'Belum diketahui') {
+  const sizeLabel = document.createElement('span'); sizeLabel.className = 'detail-title-size'; sizeLabel.textContent = detailSizeText; headingRow.appendChild(heading); headingRow.appendChild(sizeLabel);
+ } else headingRow.appendChild(heading);
  const tabs = document.createElement('div'); tabs.className = 'detail-tabs'; tabs.setAttribute('role','tablist');
  const panel = document.createElement('div'); panel.className = 'detail-tab-panel';
  const images = Array.isArray(d.detailImages) ? d.detailImages : [];
@@ -470,7 +476,7 @@ function openAddonDetail(row) {
   button.textContent=item.name; button.dataset.tab=item.key; button.setAttribute('role','tab');
   button.addEventListener('click',()=>showTab(item.key)); tabs.appendChild(button);
  });
- detailContent.append(categoryTag,heading,tabs,panel); showTab('description');
+ detailContent.append(categoryTag,headingRow,tabs,panel); showTab('description');
  const actions=document.createElement('div'); actions.className='detail-actions'; const href=displayUrl(row);
  if(href){const download=document.createElement('a');download.className='detail-button';download.href=href;download.target='_blank';download.rel='noopener noreferrer';download.textContent='UNDUH ADD-ON ↗';download.addEventListener('click',()=>recordDownload(row));actions.appendChild(download);}
  if(actions.childElementCount)detailContent.appendChild(actions);
