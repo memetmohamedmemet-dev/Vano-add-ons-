@@ -112,9 +112,11 @@ footer{border-top:1px solid #ffffff12;padding:24px 0 34px;color:var(--muted);fon
 
 /* Tampilan daftar saat satu kategori dipilih */
 #catalogSections.list-mode .grid{display:grid;grid-auto-flow:row;grid-auto-columns:initial;grid-template-columns:minmax(0,1fr);gap:12px;overflow:visible;padding:2px 0 14px;scroll-snap-type:none}
-#catalogSections.list-mode .addon.list-card{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);align-items:stretch;overflow:hidden;border-radius:14px;min-width:0}
-#catalogSections.list-mode .addon.list-card .thumb{height:auto;aspect-ratio:1.35;min-height:100%;align-self:stretch}
-#catalogSections.list-mode .addon.list-card .addon-body{padding:12px;min-width:0;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px}
+#catalogSections.list-mode .addon.list-card{display:grid;grid-template-columns:50% minmax(0,50%);align-items:stretch;overflow:hidden;border-radius:14px;min-width:0;width:100%;box-sizing:border-box}
+#catalogSections.list-mode .addon.list-card .thumb{height:auto;min-height:0;min-width:0;width:100%;aspect-ratio:auto;align-self:stretch;position:relative;display:block;overflow:hidden;box-sizing:border-box}
+#catalogSections.list-mode .addon.list-card .thumb img{position:absolute;inset:0;display:block;width:100%!important;height:100%!important;max-width:100%;object-fit:cover}
+#catalogSections.list-mode .addon.list-card .addon-body{padding:12px;min-width:0;width:100%;max-width:100%;box-sizing:border-box;overflow:hidden;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px}
+#catalogSections.list-mode .addon.list-card .addon-body>*{max-width:100%;box-sizing:border-box}
 #catalogSections.list-mode .addon.list-card .tag{font-size:10px;margin-bottom:4px}
 #catalogSections.list-mode .addon.list-card h3{font-size:15px;line-height:1.3;margin:2px 0 4px;overflow-wrap:anywhere}
 #catalogSections.list-mode .addon.list-card .creator-line{font-size:12px;margin:2px 0 5px}
@@ -122,8 +124,8 @@ footer{border-top:1px solid #ffffff12;padding:24px 0 34px;color:var(--muted);fon
 #catalogSections.list-mode .addon.list-card .download{font-size:9px;padding:7px 8px;margin:5px 5px 0 0}
 @media(max-width:480px){
  #catalogSections.list-mode .grid{gap:10px}
- #catalogSections.list-mode .addon.list-card{grid-template-columns:minmax(0,1.02fr) minmax(0,1fr)}
- #catalogSections.list-mode .addon.list-card .addon-body{padding:9px}
+ #catalogSections.list-mode .addon.list-card{grid-template-columns:48% minmax(0,52%)}
+ #catalogSections.list-mode .addon.list-card .addon-body{padding:10px}
  #catalogSections.list-mode .addon.list-card h3{font-size:13px}
  #catalogSections.list-mode .addon.list-card .creator-line{font-size:11px}
  #catalogSections.list-mode .addon.list-card .addon-summary{font-size:10px}
