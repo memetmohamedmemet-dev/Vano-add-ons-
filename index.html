@@ -87,6 +87,13 @@ footer{border-top:1px solid #ffffff12;padding:24px 0 34px;color:var(--muted);fon
 .admin-login button{background:var(--green);color:#062016;border:0;border-radius:10px;padding:12px;font-weight:900}
 @media(max-width:560px){.admin-form{grid-template-columns:1fr}.admin-form .wide{grid-column:auto}.admin-panel{padding:16px}.admin-item{align-items:flex-start;flex-direction:column}.admin-item-actions{width:100%}}
 
+
+.catalog-group{margin:30px 0 38px}
+.catalog-group-title{display:flex;align-items:center;gap:14px;margin:0 0 16px;font-size:17px;font-weight:900;letter-spacing:.8px}
+.catalog-group-title:after{content:"";height:1px;flex:1;background:#ffffff20}
+#catalogSections .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(max-width:480px){#catalogSections .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}}
+
 </style>
 </head>
 <body>
@@ -100,8 +107,8 @@ footer{border-top:1px solid #ffffff12;padding:24px 0 34px;color:var(--muted);fon
 <section class="hero-banner-section" id="beranda"><div class="hero-banner" id="heroBanner"><div class="hero-banner-placeholder"><strong>SELAMAT DATANG DI VANOADDONS</strong><span>Admin dapat mengganti foto banner melalui panel admin.</span></div></div></section>
 <section class="section" id="katalog">
  <div class="section-head"><div><div class="kicker">The collection</div><h2>Jelajahi Add-on</h2><p class="section-sub">Kumpulan add-on Minecraft Bedrock dalam satu tempat.</p></div><span class="pill" id="count">0 ADD-ON</span></div>
- <div class="tools"><input class="search" id="search" type="search" placeholder="Cari nama add-on..." aria-label="Cari add-on"><select class="filter" id="category"><option value="all">Semua kategori</option><option value="Survival">Add-on</option><option value="Mobs">Mobs</option><option value="Tools">MCPDL</option><option value="Texture">Texture</option></select></div>
- <div class="grid" id="grid"></div>
+ <div class="tools"><input class="search" id="search" type="search" placeholder="Cari nama add-on..." aria-label="Cari add-on"><select class="filter" id="category"><option value="all">Semua kategori</option><option value="Survival">Survival</option><option value="Mobs">Mobs</option><option value="Tools">Tools</option><option value="Texture">Texture</option><option value="Map">Worlds</option><option value="Other">Other</option></select></div>
+ <div id="catalogSections"></div>
  <div class="empty" id="empty"><div class="empty-icon">◇</div><h3>Katalog sedang disiapkan</h3><p>Add-on terbaru akan muncul di sini setelah ditambahkan. Kunjungi lagi untuk melihat koleksi VanoAddons.</p></div>
 </section>
 <section class="section" id="tentang" style="padding-top:0">
@@ -239,16 +246,20 @@ function render() {
   empty.querySelector('h3').textContent = 'Tidak ada hasil';
   empty.querySelector('p').textContent = 'Coba kata kunci atau kategori yang berbeda.';
  }
- grid.replaceChildren();
- visible.forEach(row => {
+ const sections = document.getElementById('catalogSections');
+ sections.replaceChildren();
+ const groups = [
+  {title:'ADD-ONS', match: row => !['Texture','Map'].includes(String(dataOf(row).category || 'Other'))},
+  {title:'TEXTURE', match: row => String(dataOf(row).category || '') === 'Texture'},
+  {title:'WORLDS', match: row => String(dataOf(row).category || '') === 'Map'}
+ ];
+ function makeCard(row) {
   const d = dataOf(row);
   const article = document.createElement('article');
   article.className = 'addon';
   const thumb = document.createElement('div');
   thumb.className = 'thumb';
-  // Kompatibilitas dengan data lama: website sebelumnya menyimpan sampul pada data.image.
-  const image = safeImageSource(d.imageUrl) || safeImageSource(d.image) ||
-   safeImageSource(d.imagePath);
+  const image = safeImageSource(d.imageUrl) || safeImageSource(d.image) || safeImageSource(d.imagePath);
   if (image) {
    const img = document.createElement('img');
    img.src = image; img.alt = ''; img.loading = 'lazy';
@@ -273,9 +284,24 @@ function render() {
   detailButton.style.cssText = 'margin-left:7px;border:1px solid #6ce5a455;background:transparent;color:var(--green);cursor:pointer';
   body.append(tag,title,desc,detailButton,link);
   article.append(thumb,body);
-  grid.appendChild(article);
+  return article;
+ }
+ groups.forEach(group => {
+  const rows = visible.filter(group.match);
+  if (!rows.length) return;
+  const section = document.createElement('section');
+  section.className = 'catalog-group';
+  const heading = document.createElement('h3');
+  heading.className = 'catalog-group-title';
+  heading.textContent = group.title;
+  const cards = document.createElement('div');
+  cards.className = 'grid';
+  rows.forEach(row => cards.appendChild(makeCard(row)));
+  section.append(heading,cards);
+  sections.appendChild(section);
  });
 }
+
 function formatFileSize(bytes) {
  const size = Number(bytes);
  if (!Number.isFinite(size) || size <= 0) return 'Belum diketahui';
