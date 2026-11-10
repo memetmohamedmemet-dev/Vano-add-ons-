@@ -91,8 +91,10 @@ footer{border-top:1px solid #ffffff12;padding:24px 0 34px;color:var(--muted);fon
 .catalog-group{margin:30px 0 38px}
 .catalog-group-title{display:flex;align-items:center;gap:14px;margin:0 0 16px;font-size:17px;font-weight:900;letter-spacing:.8px}
 .catalog-group-title:after{content:"";height:1px;flex:1;background:#ffffff20}
-#catalogSections .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-@media(max-width:480px){#catalogSections .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}}
+#catalogSections .grid{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(210px,27%);grid-template-columns:none;gap:14px;overflow-x:auto;overflow-y:hidden;padding:2px 2px 12px;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+#catalogSections .grid>.addon{min-width:0;scroll-snap-align:start}
+@media(max-width:760px){#catalogSections .grid{grid-auto-columns:minmax(0,42%);gap:10px}}
+@media(max-width:480px){#catalogSections .grid{grid-auto-columns: minmax(0,49%);gap:10px}#catalogSections .thumb{height:112px}#catalogSections .addon-body{padding:11px}#catalogSections .addon h3{font-size:14px}#catalogSections .download{padding:9px 10px;font-size:10px}}
 
 </style>
 </head>
@@ -107,7 +109,7 @@ footer{border-top:1px solid #ffffff12;padding:24px 0 34px;color:var(--muted);fon
 <section class="hero-banner-section" id="beranda"><div class="hero-banner" id="heroBanner"><div class="hero-banner-placeholder"><strong>SELAMAT DATANG DI VANOADDONS</strong><span>Admin dapat mengganti foto banner melalui panel admin.</span></div></div></section>
 <section class="section" id="katalog">
  <div class="section-head"><div><div class="kicker">The collection</div><h2>Jelajahi Add-on</h2><p class="section-sub">Kumpulan add-on Minecraft Bedrock dalam satu tempat.</p></div><span class="pill" id="count">0 ADD-ON</span></div>
- <div class="tools"><input class="search" id="search" type="search" placeholder="Cari nama add-on..." aria-label="Cari add-on"><select class="filter" id="category"><option value="all">Semua kategori</option><option value="Survival">Survival</option><option value="Mobs">Mobs</option><option value="Tools">Tools</option><option value="Texture">Texture</option><option value="Map">Worlds</option><option value="Other">Other</option></select></div>
+ <div class="tools"><input class="search" id="search" type="search" placeholder="Cari nama add-on..." aria-label="Cari add-on"><select class="filter" id="category"><option value="all">Semua kategori</option><option value="Survival">Survival</option><option value="Mobs">Mobs</option><option value="Tools">Tools</option><option value="Skin">Skin</option><option value="Texture">Texture</option><option value="Map">Worlds</option><option value="Other">Other</option></select></div>
  <div id="catalogSections"></div>
  <div class="empty" id="empty"><div class="empty-icon">◇</div><h3>Katalog sedang disiapkan</h3><p>Add-on terbaru akan muncul di sini setelah ditambahkan. Kunjungi lagi untuk melihat koleksi VanoAddons.</p></div>
 </section>
@@ -131,7 +133,7 @@ footer{border-top:1px solid #ffffff12;padding:24px 0 34px;color:var(--muted);fon
    <form id="addonForm" class="admin-form">
     <input id="editId" type="hidden">
     <label>Nama add-on<input id="addonTitle" required maxlength="100" placeholder="Contoh: Better Animals"></label>
-    <label>Kategori<select id="addonCategory"><option value="Survival">Add-on</option><option>Mobs</option><option value="Tools">MCPDL</option><option>Texture</option><option>Map</option><option>Other</option></select></label>
+    <label>Kategori<select id="addonCategory"><option value="Survival">Add-on</option><option>Mobs</option><option value="Tools">MCPDL</option><option value="Skin">Skin</option><option>Texture</option><option>Map</option><option>Other</option></select></label>
     <label class="wide">Deskripsi<textarea id="addonDescription" required maxlength="500" placeholder="Jelaskan fungsi add-on..."></textarea></label>
     <label>Link unduhan (opsional)<input id="addonDownload" type="url" placeholder="https://..."></label>
     <label>Gambar sampul (opsional)<input id="addonImage" type="file" accept="image/*"></label>
@@ -249,7 +251,8 @@ function render() {
  const sections = document.getElementById('catalogSections');
  sections.replaceChildren();
  const groups = [
-  {title:'ADD-ONS', match: row => !['Texture','Map'].includes(String(dataOf(row).category || 'Other'))},
+  {title:'ADD-ONS', match: row => !['Skin','Texture','Map'].includes(String(dataOf(row).category || 'Other'))},
+  {title:'SKIN', match: row => String(dataOf(row).category || '') === 'Skin'},
   {title:'TEXTURE', match: row => String(dataOf(row).category || '') === 'Texture'},
   {title:'WORLDS', match: row => String(dataOf(row).category || '') === 'Map'}
  ];
