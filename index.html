@@ -360,11 +360,7 @@ function render() {
   const body = document.createElement('div');
   body.className = 'addon-body';
   const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = categoryLabel(d.category);
-  const title = document.createElement('h3'); title.className = 'addon-title-row';
-  const titleText = document.createElement('span'); titleText.className = 'addon-name'; titleText.textContent = row.title || 'Add-on';
-  title.appendChild(titleText);
-  const sizeLabelText = String(d.fileSizeLabel || '').trim() || formatFileSize(d.fileSizeBytes || d.fileSize);
-  if (sizeLabelText && sizeLabelText !== 'Belum diketahui') { const sizeLabel = document.createElement('span'); sizeLabel.className = 'addon-size-label'; sizeLabel.textContent = sizeLabelText; title.appendChild(sizeLabel); }
+  const title = document.createElement('h3'); title.textContent = row.title || 'Add-on';
   const creator = document.createElement('span'); creator.className = 'creator-line';
   creator.textContent = d.creator ? 'oleh ' + d.creator : '';
   creator.style.display = d.creator ? 'block' : 'none';
@@ -440,7 +436,7 @@ function openAddonDetail(row) {
  const images = Array.isArray(d.detailImages) ? d.detailImages : [];
  const photoUrls = images.map(item => safeImageSource(typeof item === 'string' ? item : item.path || item.url)).filter(Boolean);
  const videoUrl = d.videoPath ? safeHttpUrl(fileUrl(d.videoPath)) : '';
- const tabItems = [{name:'Deskripsi',key:'description'}, ...(videoUrl ? [{name:'Video Preview',key:'video'}] : []), ...(photoUrls.length ? [{name:'Foto Detail',key:'photos'}] : []), {name:'Size',key:'size'}];
+ const tabItems = [{name:'Deskripsi',key:'description'}, ...(videoUrl ? [{name:'Video Preview',key:'video'}] : []), ...(photoUrls.length ? [{name:'Foto Detail',key:'photos'}] : [])];
  function showTab(key) {
   tabs.querySelectorAll('button').forEach(btn => {
    const active = btn.dataset.tab === key; btn.classList.toggle('active',active); btn.setAttribute('aria-selected',String(active));
