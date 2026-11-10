@@ -311,7 +311,8 @@ function render() {
  sections.classList.toggle('list-mode', c !== 'all');
  sections.replaceChildren();
  const groups = [
-  {title:'ADD-ONS', match: row => !['Skin','Texture','Map'].includes(String(dataOf(row).category || 'Other'))},
+  {title:'ADD-ONS', match: row => !['Tools','Skin','Texture','Map'].includes(String(dataOf(row).category || 'Other'))},
+  {title:'MCPDL', match: row => String(dataOf(row).category || '') === 'Tools'},
   {title:'SKIN', match: row => String(dataOf(row).category || '') === 'Skin'},
   {title:'TEXTURE', match: row => String(dataOf(row).category || '') === 'Texture'},
   {title:'WORLDS', match: row => String(dataOf(row).category || '') === 'Map'}
