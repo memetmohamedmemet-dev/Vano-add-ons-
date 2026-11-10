@@ -117,6 +117,14 @@ footer{border-top:1px solid #ffffff12;padding:24px 0 34px;color:var(--muted);fon
  #catalogSections .download{padding:10px 12px;font-size:10px;margin:7px 7px 0 0}
 }
 
+/* Tampilan semua kategori: kartu ringkas dan bisa dibuka dengan sekali sentuh */
+#catalogSections:not(.list-mode) .addon{cursor:pointer}
+#catalogSections:not(.list-mode) .addon .addon-summary,
+#catalogSections:not(.list-mode) .addon .detail-trigger,
+#catalogSections:not(.list-mode) .addon .download{display:none!important}
+#catalogSections:not(.list-mode) .addon .addon-body{gap:4px}
+#catalogSections:not(.list-mode) .addon .creator-line{margin:2px 0 0}
+
 /* Tampilan daftar saat satu kategori dipilih */
 #catalogSections.list-mode .grid{display:grid;grid-auto-flow:row;grid-auto-columns:initial;grid-template-columns:minmax(0,1fr);gap:12px;overflow:visible;padding:2px 0 14px;scroll-snap-type:none}
 #catalogSections.list-mode .addon.list-card{display:grid;grid-template-columns:50% minmax(0,50%);align-items:stretch;overflow:hidden;border-radius:14px;min-width:0;width:100%;box-sizing:border-box}
@@ -327,18 +335,16 @@ function render() {
   const d = dataOf(row);
   const article = document.createElement('article');
   article.className = 'addon' + (c !== 'all' ? ' list-card' : '');
-  if (c !== 'all') {
-   article.setAttribute('role','button');
-   article.setAttribute('tabindex','0');
-   article.setAttribute('aria-label','Lihat detail ' + (row.title || 'add-on'));
-   article.addEventListener('click', () => openAddonDetail(row));
-   article.addEventListener('keydown', event => {
-    if (event.key === 'Enter' || event.key === ' ') {
-     event.preventDefault();
-     openAddonDetail(row);
-    }
-   });
-  }
+  article.setAttribute('role','button');
+  article.setAttribute('tabindex','0');
+  article.setAttribute('aria-label','Lihat detail ' + (row.title || 'add-on'));
+  article.addEventListener('click', () => openAddonDetail(row));
+  article.addEventListener('keydown', event => {
+   if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    openAddonDetail(row);
+   }
+  });
   const thumb = document.createElement('div');
   thumb.className = 'thumb';
   const image = safeImageSource(d.imageUrl) || safeImageSource(d.image) || safeImageSource(d.imagePath);
