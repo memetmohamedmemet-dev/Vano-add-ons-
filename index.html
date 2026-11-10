@@ -78,6 +78,13 @@ footer{border-top:1px solid #ffffff12;padding:24px 0 34px;color:var(--muted);fon
 .admin-cancel,.admin-item button{background:#1b3328;color:var(--text);border:1px solid var(--line)!important}
 .admin-status{font-size:12px;color:var(--mint);min-height:18px;margin:8px 0}
 .admin-list{border-top:1px solid var(--line);margin-top:18px;padding-top:14px}
+.download-stats-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}
+.download-stat-card{background:#14251f;border:1px solid var(--line);border-radius:12px;padding:13px}
+.download-stat-card small{display:block;color:var(--muted);font-size:11px}
+.download-stat-card strong{display:block;color:var(--green);font-size:22px;margin-top:4px}
+.download-stat-row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #ffffff12;font-size:12px}
+.download-stat-row strong{overflow-wrap:anywhere}
+.download-stat-row span{color:var(--green);white-space:nowrap;font-weight:900}
 .admin-item{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid #ffffff12}
 .admin-item strong{display:block;font-size:13px}.admin-item small{color:var(--muted);font-size:11px}
 .admin-item-actions{display:flex;gap:6px;flex-shrink:0}
@@ -173,6 +180,7 @@ footer{border-top:1px solid #ffffff12;padding:24px 0 34px;color:var(--muted);fon
   <div id="adminWorkspace" style="display:none">
    <div class="admin-list" style="margin-top:12px"><strong>Banner halaman depan</strong><p class="admin-note">Pilih foto dari galeri HP untuk mengganti banner yang dilihat semua pengunjung.</p><div class="admin-form" style="margin-top:10px"><label class="wide">Pilih beberapa foto banner<input id="siteBannerFile" type="file" accept="image/*" multiple><small class="admin-note">Pilih maksimal 10 foto, masing-masing maksimal 10 MB. Foto akan berganti otomatis.</small></label><div class="admin-actions wide"><button class="admin-save" id="saveBanner" type="button">Simpan banner</button></div></div><div class="admin-note" id="bannerStatus" role="status"></div></div>
    <div class="admin-actions"><button class="admin-cancel" id="logoutButton" type="button">Keluar</button><span class="admin-note" id="adminIdentity"></span></div>
+    <div class="admin-list" id="downloadStatsSection"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><strong>Statistik Download</strong><button class="admin-cancel" id="refreshDownloadStats" type="button">Perbarui</button></div><p class="admin-note">Hanya admin yang dapat melihat data ini.</p><div class="download-stats-grid"><div class="download-stat-card"><small>Total download</small><strong id="downloadTotal">—</strong></div><div class="download-stat-card"><small>Add-on dengan download</small><strong id="downloadedAddonCount">—</strong></div></div><div id="downloadStatsList" class="admin-note">Memuat statistik...</div></div>
    <form id="addonForm" class="admin-form">
     <input id="editId" type="hidden">
     <label>Nama add-on<input id="addonTitle" required maxlength="100" placeholder="Contoh: Better Animals"></label>
@@ -270,6 +278,12 @@ function fileUrl(path) {
  if (!path) return '';
  return sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl || '';
 }
+async function recordDownload(row) {
+ const id = Number(row && row.id);
+ if (!Number.isSafeInteger(id) || id <= 0) return;
+ const { error } = await sb.rpc('record_addon_download', { p_addon_id: id });
+ if (error) console.error('VanoAddons download tracking error:', error.message);
+}
 function displayUrl(row) {
  const d = dataOf(row);
  return safeHttpUrl(d.downloadUrl) || safeHttpUrl(fileUrl(d.filePath));
@@ -338,7 +352,7 @@ function render() {
   const desc = document.createElement('p'); desc.className = 'addon-summary'; desc.textContent = d.description || ''; desc.title = d.description || '';
   const link = document.createElement('a'); link.className = 'download'; link.textContent = 'UNDUH ADD-ON ↗';
   const href = displayUrl(row);
-  if (href) { link.href = href; link.target = '_blank'; link.rel = 'noopener noreferrer'; }
+  if (href) { link.href = href; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.addEventListener('click', event => { event.stopPropagation(); recordDownload(row); }); }
   else { link.href = '#'; link.textContent = 'FILE BELUM TERSEDIA'; link.style.opacity = '.6'; link.addEventListener('click', e => e.preventDefault()); }
   const detailButton = document.createElement('button');
   detailButton.type = 'button';
@@ -440,7 +454,7 @@ function openAddonDetail(row) {
  });
  detailContent.append(categoryTag,heading,tabs,panel); showTab('description');
  const actions=document.createElement('div'); actions.className='detail-actions'; const href=displayUrl(row);
- if(href){const download=document.createElement('a');download.className='detail-button';download.href=href;download.target='_blank';download.rel='noopener noreferrer';download.textContent='UNDUH ADD-ON ↗';actions.appendChild(download);}
+ if(href){const download=document.createElement('a');download.className='detail-button';download.href=href;download.target='_blank';download.rel='noopener noreferrer';download.textContent='UNDUH ADD-ON ↗';download.addEventListener('click',()=>recordDownload(row));actions.appendChild(download);}
  if(actions.childElementCount)detailContent.appendChild(actions);
  detailOverlay.classList.add('open'); document.body.style.overflow='hidden';
 }
@@ -539,7 +553,30 @@ async function checkAdmin() {
  }
  showAdminState(true);
  await loadAdminRows();
+ try { await loadDownloadStats(); } catch (statsError) { console.error('VanoAddons stats error:', statsError); document.getElementById('downloadStatsList').textContent = 'Statistik belum tersedia. Jalankan SQL pengaturan statistik terlebih dahulu.'; }
  return true;
+}
+async function loadDownloadStats() {
+ const totalEl = document.getElementById('downloadTotal');
+ const addonCountEl = document.getElementById('downloadedAddonCount');
+ const list = document.getElementById('downloadStatsList');
+ list.textContent = 'Memuat statistik...';
+ const { data, error } = await sb.rpc('admin_download_stats');
+ if (error) throw error;
+ const rows = Array.isArray(data) ? data : [];
+ const total = rows.reduce((sum, row) => sum + Number(row.downloads || 0), 0);
+ const downloaded = rows.filter(row => Number(row.downloads || 0) > 0).length;
+ totalEl.textContent = total.toLocaleString('id-ID');
+ addonCountEl.textContent = downloaded.toLocaleString('id-ID');
+ list.replaceChildren();
+ if (!rows.length) { list.textContent = 'Belum ada data add-on.'; return; }
+ rows.sort((a,b) => Number(b.downloads || 0) - Number(a.downloads || 0));
+ rows.forEach(row => {
+  const item = document.createElement('div'); item.className = 'download-stat-row';
+  const name = document.createElement('strong'); name.textContent = row.addon_title || 'Add-on dihapus';
+  const count = document.createElement('span'); count.textContent = Number(row.downloads || 0).toLocaleString('id-ID') + ' download';
+  item.append(name,count); list.appendChild(item);
+ });
 }
 async function loadAdminRows() {
  const { data, error } = await sb.from(TABLE).select('id,title,data,published').order('id',{ascending:false});
@@ -708,6 +745,7 @@ document.getElementById('openAdmin').addEventListener('click', async () => {
 });
 document.getElementById('closeAdmin').addEventListener('click',closeAdmin);
 document.getElementById('saveBanner').addEventListener('click',saveSiteBanner);
+document.getElementById('refreshDownloadStats').addEventListener('click',async()=>{try{await loadDownloadStats();}catch(error){document.getElementById('downloadStatsList').textContent='Gagal memuat statistik: '+(error.message||String(error));}});
 document.getElementById('closeDetail').addEventListener('click',closeAddonDetail);
 detailOverlay.addEventListener('click',e=>{if(e.target===detailOverlay)closeAddonDetail();});
 overlay.addEventListener('click',e=>{if(e.target===overlay)closeAdmin();});
