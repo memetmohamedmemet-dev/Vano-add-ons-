@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://memetmohamedmemet-dev.github.io/Vano-add-ons-/sitemap.xml
