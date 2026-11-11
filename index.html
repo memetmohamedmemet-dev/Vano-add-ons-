@@ -390,7 +390,7 @@ function render() {
  function renderGroup(group, rows, listMode=false) {
   if (!rows.length) return;
   const ordered = [...rows].sort((a,b) => Number(!!dataOf(b).featured) - Number(!!dataOf(a).featured));
-  const shown = ordered.slice(0,7);
+  const shown = listMode ? ordered : ordered.slice(0,7);
   const section = document.createElement('section');
   section.className = 'catalog-group';
   const heading = document.createElement('h3');
@@ -400,7 +400,7 @@ function render() {
   cards.className = 'grid' + (listMode ? ' list-grid' : '');
   shown.forEach(row => cards.appendChild(makeCard(row)));
   section.append(heading,cards);
-  if (ordered.length > 7) {
+  if (!listMode && ordered.length > 7) {
    const more = document.createElement('button');
    more.type = 'button';
    more.className = 'catalog-more';
