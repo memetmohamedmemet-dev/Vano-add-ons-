@@ -83,9 +83,10 @@ footer{border-top:1px solid #ffffff12;padding:24px 0 34px;color:var(--muted);fon
 .download-stat-card{background:#14251f;border:1px solid var(--line);border-radius:12px;padding:13px}
 .download-stat-card small{display:block;color:var(--muted);font-size:11px}
 .download-stat-card strong{display:block;color:var(--green);font-size:22px;margin-top:4px}
-.download-stat-row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #ffffff12;font-size:12px}
+.download-stat-row{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid #ffffff12;font-size:11px;line-height:1.35}
 .download-stat-row strong{overflow-wrap:anywhere}
 .download-stat-row span{color:var(--green);white-space:nowrap;font-weight:900}
+.download-stats-toggle{display:block;margin-top:10px;padding:8px 11px;border:1px solid #bd8aff66;border-radius:9px;background:#241a30;color:#dfc7ff;font:inherit;font-size:11px;font-weight:800;cursor:pointer}
 .admin-item{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid #ffffff12}
 .admin-item strong{display:block;font-size:13px}.admin-item small{color:var(--muted);font-size:11px}
 .admin-item-actions{display:flex;gap:6px;flex-shrink:0}
@@ -252,6 +253,7 @@ let addonRows = [];
 let bannerTimer = null;
 let isAdmin = false;
 let currentSession = null;
+let downloadStatsExpanded = false;
 const detailOverlay = document.getElementById('detailOverlay');
 const detailContent = document.getElementById('detailContent');
 grid.addEventListener('click', event => {
@@ -609,12 +611,23 @@ async function loadDownloadStats() {
  list.replaceChildren();
  if (!rows.length) { list.textContent = 'Belum ada data add-on.'; return; }
  rows.sort((a,b) => Number(b.downloads || 0) - Number(a.downloads || 0));
- rows.forEach(row => {
+ const visibleRows = downloadStatsExpanded ? rows : rows.slice(0,5);
+ visibleRows.forEach(row => {
   const item = document.createElement('div'); item.className = 'download-stat-row';
   const name = document.createElement('strong'); name.textContent = row.addon_title || 'Add-on dihapus';
   const count = document.createElement('span'); count.textContent = Number(row.downloads || 0).toLocaleString('id-ID') + ' download';
   item.append(name,count); list.appendChild(item);
  });
+ if (rows.length > 5) {
+  const toggle = document.createElement('button');
+  toggle.type = 'button'; toggle.className = 'download-stats-toggle';
+  toggle.textContent = downloadStatsExpanded ? 'Tampilkan lebih sedikit' : 'Lihat semua (' + rows.length + ')';
+  toggle.addEventListener('click', () => {
+   downloadStatsExpanded = !downloadStatsExpanded;
+   loadDownloadStats();
+  });
+  list.appendChild(toggle);
+ }
 }
 async function loadAdminRows() {
  const { data, error } = await sb.from(TABLE).select('id,title,data,published').order('id',{ascending:false});
