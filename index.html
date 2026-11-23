@@ -189,6 +189,20 @@ footer{border-top:1px solid #ffffff12;padding:24px 0 34px;color:var(--muted);fon
 
 .catalog-main-title{font-size:30px;letter-spacing:-1px;line-height:1.2;margin:8px 0 0;max-width:720px}
 @media(max-width:480px){.catalog-main-title{font-size:25px;letter-spacing:-.7px}}
+
+/* Compact cards for the horizontal category catalog */
+@media(max-width:760px){
+ #catalogSections:not(.list-mode) .grid{grid-auto-columns:minmax(240px,72%);gap:12px}
+ #catalogSections:not(.list-mode) .addon-body{padding:11px 12px 13px}
+ #catalogSections:not(.list-mode) .addon h3{font-size:15px;line-height:1.25}
+ #catalogSections:not(.list-mode) .addon .creator-line{font-size:11px;margin-top:2px}
+}
+@media(max-width:480px){
+ #catalogSections:not(.list-mode) .grid{grid-auto-columns:minmax(230px,72%);gap:10px;padding-bottom:12px}
+ #catalogSections:not(.list-mode) .addon-body{padding:10px 11px}
+ #catalogSections:not(.list-mode) .addon h3{font-size:14px}
+ #catalogSections:not(.list-mode) .addon .creator-line{font-size:10.5px}
+}
 </style>
 </head>
 <body>
