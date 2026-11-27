@@ -203,13 +203,28 @@ footer{border-top:1px solid #ffffff12;padding:24px 0 34px;color:var(--muted);fon
  #catalogSections:not(.list-mode) .addon h3{font-size:14px}
  #catalogSections:not(.list-mode) .addon .creator-line{font-size:10.5px}
 }
+
+/* Pusat Bantuan */
+.help-center{padding:34px 0 42px;border-top:1px solid #ffffff12}
+.help-intro{max-width:680px;color:var(--muted);font-size:13px;line-height:1.75;margin:8px 0 20px}
+.help-list{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.help-item{border:1px solid #ffffff1c;background:linear-gradient(145deg,#171717,#101010);border-radius:14px;padding:15px 16px}
+.help-item summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:13px;font-weight:800;color:var(--text)}
+.help-item summary::-webkit-details-marker{display:none}
+.help-item summary:after{content:"+";color:var(--green);font-size:19px;line-height:1}
+.help-item[open] summary:after{content:"−"}
+.help-item p{color:var(--muted);font-size:12px;line-height:1.75;margin:12px 0 0}
+.help-contact{margin-top:16px;border:1px solid #ffffff20;background:#151515;border-radius:15px;padding:17px;display:flex;align-items:center;justify-content:space-between;gap:15px}
+.help-contact p{margin:5px 0 0;color:var(--muted);font-size:12px;line-height:1.6}
+.help-contact a{display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border:1px solid #25d36666;border-radius:10px;color:#25d366;font-size:12px;font-weight:800;white-space:nowrap}
+@media(max-width:640px){.help-list{grid-template-columns:1fr}.help-contact{align-items:flex-start;flex-direction:column}}
 </style>
 </head>
 <body>
 <div class="wrap">
 <nav>
   <a class="brand" href="#"><img class="logo" src="va-logo.svg" alt="Logo VA VanoAddons"> Vano<span style="color:var(--green)">Addons</span></a>
-  <div class="navlinks"><a href="#beranda">Beranda</a><a href="#katalog">Katalog</a><a href="#tentang">Tentang</a></div>
+  <div class="navlinks"><a href="#beranda">Beranda</a><a href="#katalog">Katalog</a><a href="#tentang">Tentang</a><a href="#pusat-bantuan">Pusat Bantuan</a></div>
   <div style="display:flex;gap:8px;align-items:center"><a class="pill" href="#katalog">Jelajahi Add-on ↗</a><button class="pill" id="openAdmin" type="button" style="background:transparent;cursor:pointer">Admin</button></div>
 </nav>
 <main>
@@ -224,6 +239,25 @@ footer{border-top:1px solid #ffffff12;padding:24px 0 34px;color:var(--muted);fon
 <section class="section" id="tentang" style="padding-top:0">
  <div class="kicker">Tentang VanoAddons</div><h2>Temukan Add-on Minecraft Bedrock Favoritmu</h2><p class="section-sub" style="max-width:700px;line-height:1.8">VanoAddons adalah katalog untuk menemukan add-on Minecraft Bedrock gratis. Jelajahi berbagai pilihan add-on survival, mobs, texture pack, skin, map, dan MCPDL. Setiap halaman add-on menyediakan informasi agar kamu dapat melihat detail sebelum mengunduh. Kami terus melengkapi koleksi supaya pemain Minecraft Bedrock lebih mudah menemukan konten baru untuk petualangan mereka.</p>
 </section>
+
+<section class="section help-center" id="pusat-bantuan">
+ <div class="kicker">Bantuan & panduan</div>
+ <h2>PUSAT BANTUAN</h2>
+ <p class="help-intro">Temukan jawaban untuk pertanyaan umum seputar penggunaan VanoAddons dan add-on Minecraft Bedrock.</p>
+ <div class="help-list">
+  <details class="help-item"><summary>Bagaimana cara mengunduh add-on?</summary><p>Buka kartu add-on yang kamu inginkan, baca informasi pada halaman detail, lalu tekan tombol download jika tautan unduhan tersedia.</p></details>
+  <details class="help-item"><summary>Bagaimana cara memasang file .mcaddon atau .mcpack?</summary><p>Setelah file selesai diunduh, buka file tersebut menggunakan Minecraft. Minecraft akan mengimpor paketnya. Setelah impor selesai, aktifkan paket melalui pengaturan Resource Packs atau Behavior Packs pada dunia kamu.</p></details>
+  <details class="help-item"><summary>Apakah semua add-on kompatibel dengan versi Minecraft saya?</summary><p>Kompatibilitas dapat berbeda untuk setiap add-on. Periksa keterangan versi pada halaman detail atau informasi dari pembuat add-on sebelum memasangnya.</p></details>
+  <details class="help-item"><summary>Kenapa tautan download tidak bisa dibuka?</summary><p>Pastikan koneksi internet stabil dan coba buka kembali tautannya. Jika tautan tetap bermasalah, beri tahu kami melalui Saluran WhatsApp VanoAddons.</p></details>
+  <details class="help-item"><summary>Apakah VanoAddons merupakan Marketplace resmi Minecraft?</summary><p>Bukan. VanoAddons adalah katalog independen untuk add-on Minecraft Bedrock dan tidak berafiliasi dengan Mojang atau Microsoft.</p></details>
+  <details class="help-item"><summary>Bagaimana jika add-on tidak muncul di dalam game?</summary><p>Pastikan proses impor berhasil, gunakan versi Minecraft yang sesuai, lalu periksa apakah paket sudah diaktifkan pada pengaturan dunia yang benar.</p></details>
+ </div>
+ <div class="help-contact">
+  <div><strong>Masih membutuhkan bantuan?</strong><p>Kunjungi Saluran WhatsApp VanoAddons untuk mendapatkan informasi dan kabar terbaru.</p></div>
+  <a href="https://whatsapp.com/channel/0029VbBhbn8kyyPnLjOlo3N" target="_blank" rel="noopener noreferrer">Buka Saluran WhatsApp ↗</a>
+ </div>
+</section>
+
 </main>
 
 <div class="admin-overlay" id="adminOverlay" role="dialog" aria-modal="true" aria-labelledby="adminTitle">
